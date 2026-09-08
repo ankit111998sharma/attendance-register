@@ -1,0 +1,36 @@
+---
+description: Upload new projects to GitHub first; feature-branch workflow; merge to main only after a successful run
+alwaysApply: true
+---
+
+# GitHub-first and branch workflow
+
+Applies to every project under `D:\Cursor ai projects`. GitHub account: `ankit111998sharma`. Repos must be **private**. Use `gh` (or `C:\Program Files\GitHub CLI\gh.exe` if `gh` is not on PATH).
+
+## New project — upload to GitHub before feature work
+
+1. `git init -b main` if needed. Add a `.gitignore` that excludes `node_modules`, `.venv`, `__pycache__`, `target`, `.next`, `.env*`, secrets, and build output.
+2. Initial commit on `main` only (no feature work in that commit).
+3. Create and push a **private** repo: `gh repo create <lowercase-dash-name> --private --source=. --remote=origin --push`
+4. If `origin` already exists, do not create a second remote. Push to the existing repo instead.
+
+## Feature work — never commit features on `main`
+
+1. `git checkout main` and `git pull` (if a remote exists).
+2. Create a new branch: `git checkout -b feature/<short-name>`
+3. Implement and commit on that branch only.
+4. **Run the project** (dev server, tests, or the app’s real start command). For UI changes, verify in the browser.
+
+### If it fails
+
+- Stay on the feature branch.
+- Do **not** merge to `main`.
+- Fix the error, re-run, and repeat until it succeeds.
+
+### If it succeeds
+
+- `git checkout main`
+- `git merge feature/<short-name>`
+- `git push origin main`
+
+Do not merge a broken or unverified branch. Do not push secrets. Do not force-push `main`.
