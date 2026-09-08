@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "macros.html" import action_delete, action_link, action_menu, icon_delete, icon_edit, icon_open %}
+{% block title %}Classes · Attendance Register{% endblock %}
+{% block eyebrow %}Super admin{% endblock %}
+{% block heading %}Classes{% endblock %}
+
+{% block content %}
+<section class="panel" id="register-class" hidden data-form-panel>
+  <h3>Add a class</h3>
+  <form method="post" class="stack">
+    <label>Class name<input name="name" placeholder="Science" required></label>
+    <div class="two">
+      <label>Grade<input name="grade" placeholder="10" required></label>
+      <label>Section<input name="section" placeholder="A" required></label>
+    </div>
+    <div class="row-actions">
+      <button class="btn primary" type="submit">Add class</button>
+      <button class="btn ghost" type="button" data-close-panel="register-class">Back</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel" data-list-panel>
+  <div class="panel-head">
+    <h3>All classes</h3>
+    <div class="toolbar-actions">
+      <button class="btn primary" type="button" data-open-panel="register-class" data-open-label="Add class" data-close-label="Close form" aria-expanded="false" aria-controls="register-class">Add class</button>
+    </div>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Grade</th>
+        <th>Section</th>
+        <th>Students</th>
+        <th>Teachers</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td class="num"><strong>{{ row.grade }}</strong></td>
+        <td class="num">{{ row.section }}</td>
+        <td class="num">{{ row.students|length }}</td>
+        <td class="num">{{ row.permissions|length }}</td>
+        <td>
+          {% call action_menu() %}
+            {{ action_link(url_for('class_view', class_id=row.id), 'Open register', icon_open()) }}
+            {{ action_link(url_for('edit_class', class_id=row.id, next=request.full_path), 'Edit details', icon_edit()) }}
+            {{ action_delete('delete-class-' ~ row.id, 'Delete class', 'Delete ' ~ row.label ~ '? Students must be moved or removed first.', icon_delete()) }}
+          {% endcall %}
+          <form id="delete-class-{{ row.id }}" method="post" action="{{ url_for('delete_class', class_id=row.id) }}" hidden>
+            <input type="hidden" name="next" value="{{ request.full_path }}">
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">No classes yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

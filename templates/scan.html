@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Scanner · Attendance Register{% endblock %}
+{% block eyebrow %}Live register{% endblock %}
+{% block heading %}Face &amp; copy scan{% endblock %}
+
+{% block content %}
+<section class="scan-layout">
+  <article class="panel scan-stage">
+    <div class="mode-switch" role="tablist">
+      <button type="button" class="mode-btn active" data-mode="attendance">Scan face · attendance</button>
+      <button type="button" class="mode-btn" data-mode="work">Scan copy · classwork + homework</button>
+    </div>
+    <video id="camera" autoplay playsinline muted></video>
+    <canvas id="frame" hidden></canvas>
+    <label class="live-toggle" id="live-toggle-wrap">
+      <input type="checkbox" id="live-toggle" checked>
+      Live scan — teacher only points the camera. Class and section fill in automatically.
+    </label>
+    {% if enrolled_ready == 0 %}
+    <p class="flash error">No students in your classes have enough face photos yet. Enroll {{ min_photos }} or more photos first, then scan again.</p>
+    {% else %}
+    <p class="muted">{{ enrolled_ready }} student{{ 's' if enrolled_ready != 1 else '' }} in your classes are ready for face scan.</p>
+    {% endif %}
+    <label>Subject / class
+      <select id="class-picker" name="class_id">
+        {% for cls in writable %}
+          <option value="{{ cls.id }}" {% if selected_class == cls.id %}selected{% endif %}>{{ cls.grade }}-{{ cls.section }} · {{ cls.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label id="student-picker-wrap">
+      Optional: choose the student if the camera cannot match
+      <select id="student-picker">
+        <option value="">Detect from the camera</option>
+        {% for student in scan_students %}
+          <option value="{{ student.id }}">{{ student.roll_number }} · {{ student.user.full_name }} · {{ student.school_class.grade }}-{{ student.school_class.section }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="scan-actions">
+      <button class="btn primary" id="capture-btn" type="button">Scan now</button>
+      <label class="btn ghost">Upload photo<input type="file" id="upload-input" accept="image/*" hidden></label>
+    </div>
+    <p class="muted" id="scan-hint">Choose the subject first. The same student is stored once for that subject during a 30–60 minute class. Change the subject to take a new attendance. Times are saved in IST.</p>
+  </article>
+
+  <article class="panel" id="result-card">
+    <h3>Identified student</h3>
+    <div id="result-empty" class="muted">Waiting for a face. Enroll {{ min_photos }}–{{ max_photos }} photos per student first.</div>
+    <div id="result-body" hidden>
+      <p class="class-badge" id="result-class"></p>
+      <h4 id="result-name"></h4>
+      <p id="result-roll"></p>
+      <p id="result-message"></p>
+      <p class="muted" id="result-score"></p>
+    </div>
+    <p id="result-error" class="flash error" hidden></p>
+    <h3 class="recent-title">Saved this session</h3>
+    <ul class="work-list" id="recent-list">
+      <li class="muted" id="recent-empty">No scans saved yet.</li>
+    </ul>
+  </article>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/scan.js') }}?v=5"></script>
+{% endblock %}

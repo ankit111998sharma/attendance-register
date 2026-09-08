@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ school_class.label }}{% endblock %}
+{% block eyebrow %}Class details{% endblock %}
+{% block heading %}Edit {{ school_class.label }}{% endblock %}
+
+{% block content %}
+<div class="split">
+  <section class="panel">
+    <p class="muted">{{ school_class.students|length }} students · {{ school_class.permissions|length }} teachers assigned</p>
+    <form method="post" class="stack">
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <label>Class name<input name="name" value="{{ school_class.name }}" required></label>
+      <div class="two">
+        <label>Grade<input name="grade" value="{{ school_class.grade }}" required></label>
+        <label>Section<input name="section" value="{{ school_class.section }}" required></label>
+      </div>
+      <p class="muted">Students stay in this class. Changing grade or section only updates the class label.</p>
+      <div class="row-actions">
+        <button class="btn primary" type="submit">Save details</button>
+        <a class="btn ghost" href="{{ next_url }}" data-back>Back</a>
+        <a class="btn ghost" href="{{ url_for('class_view', class_id=school_class.id) }}">Open register</a>
+      </div>
+    </form>
+  </section>
+  <section class="panel">
+    <h3>Remove class</h3>
+    {% if school_class.students %}
+      <p class="muted">This class still has {{ school_class.students|length }} students. Move or delete them before you can remove the class.</p>
+    {% else %}
+      <p class="muted">This deletes the class and any teacher permissions on it. It cannot be undone.</p>
+      <form method="post" action="{{ url_for('delete_class', class_id=school_class.id) }}" onsubmit="return confirm('Delete {{ school_class.label }} permanently?');">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <button class="btn danger" type="submit">Delete class</button>
+      </form>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

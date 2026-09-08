@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Face photos · {{ student.user.full_name }}{% endblock %}
+{% block eyebrow %}Enrollment{% endblock %}
+{% block heading %}{{ student.user.full_name }}{% endblock %}
+
+{% block content %}
+<section class="scan-layout">
+  <article class="panel scan-stage">
+    <p class="eyebrow">Class {{ student.school_class.grade }}-{{ student.school_class.section }} · Roll {{ student.roll_number }}</p>
+    <p class="lede" id="pose-prompt">{{ prompt }}</p>
+    <video id="camera" autoplay playsinline></video>
+    <canvas id="frame" hidden></canvas>
+    <div class="scan-actions">
+      <button class="btn primary" id="capture-btn" type="button">Capture this pose</button>
+      <label class="btn ghost">Upload photos ({{ min_photos }}–{{ max_photos }})
+        <input type="file" id="upload-input" accept="image/*" multiple hidden>
+      </label>
+    </div>
+    <p class="muted" id="enroll-hint">Take different photos: left, right, closer, farther, smile, and straight-on. Minimum {{ min_photos }}, maximum {{ max_photos }}.</p>
+  </article>
+
+  <article class="panel">
+    <h3>Progress</h3>
+    <p class="stat-card enroll-count">
+      <strong id="photo-count">{{ count }}</strong>
+      <span>of {{ min_photos }} required · max {{ max_photos }}</span>
+    </p>
+    <p id="enroll-status" class="{{ 'flash success' if student.face_enrolled else 'muted' }}">
+      {% if student.face_enrolled %}
+        This student is ready for teacher face scan.
+      {% else %}
+        Need {{ min_photos - count if count < min_photos else 0 }} more different photos.
+      {% endif %}
+    </p>
+    <div class="photo-grid" id="photo-grid">
+      {% for photo in photos %}
+        <img src="{{ url_for('static', filename=photo) }}" alt="Enrollment photo">
+      {% endfor %}
+    </div>
+    <div class="row-actions">
+      <a class="btn ghost" href="{{ url_for('dashboard') }}" data-back>Back</a>
+      {% if student.face_enrolled %}
+        <a class="btn primary small" href="{{ url_for('scan') }}">Open teacher scanner</a>
+      {% endif %}
+    </div>
+  </article>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script
+  src="{{ url_for('static', filename='js/enroll.js') }}"
+  data-student-id="{{ student.id }}"
+  data-min="{{ min_photos }}"
+  data-max="{{ max_photos }}"
+></script>
+{% endblock %}

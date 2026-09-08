@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Reports · Attendance Register{% endblock %}
+{% block eyebrow %}Downloads{% endblock %}
+{% block heading %}Reports{% endblock %}
+
+{% block content %}
+<p class="muted">Download student or teacher data with the same filters used on the register. Choose Excel, PDF or Word. The heading can be the school name or any custom title.</p>
+<div class="split equal">
+  <section class="panel">
+    <h3>Students</h3>
+    <form method="get" action="{{ url_for('export_students') }}" class="stack">
+      <input type="hidden" name="from" value="reports">
+      <div class="two">
+        <label>Grade
+          <select name="grade">
+            <option value="">All grades</option>
+            {% for grade in grades %}
+              <option value="{{ grade }}">{{ grade }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Section
+          <select name="section">
+            <option value="">All sections</option>
+            {% for section in sections %}
+              <option value="{{ section }}">{{ section }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+      <label>Name, admission number or roll
+        <input type="search" name="q" placeholder="Optional search">
+      </label>
+      <div class="two">
+        <label>Registered from
+          <input type="date" name="registered_from">
+        </label>
+        <label>Registered to
+          <input type="date" name="registered_to">
+        </label>
+      </div>
+      <div class="two">
+        <label>Access
+          <select name="access">
+            <option value="">All</option>
+            <option value="active">Active</option>
+            <option value="deactivated">Deactivated</option>
+          </select>
+        </label>
+        <label>Face photos
+          <select name="face">
+            <option value="">All</option>
+            <option value="ready">Ready</option>
+            <option value="pending">Pending</option>
+          </select>
+        </label>
+      </div>
+      <label>School name or custom heading
+        <input name="title" value="{{ school_name }}" required>
+      </label>
+      <fieldset class="format-picker">
+        <legend>File type</legend>
+        <label><input type="radio" name="format" value="xlsx" checked> Excel</label>
+        <label><input type="radio" name="format" value="pdf"> PDF</label>
+        <label><input type="radio" name="format" value="docx"> Word</label>
+      </fieldset>
+      {% if current_user.is_admin %}
+      <label class="checks"><input type="checkbox" name="save_title" value="1"> Save this heading as the school name</label>
+      {% endif %}
+      <button class="btn primary" type="submit">Download student report</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h3>Teachers</h3>
+    <form method="get" action="{{ url_for('export_teachers') }}" class="stack">
+      <div class="two">
+        <label>Grade
+          <select name="grade">
+            <option value="">All grades</option>
+            {% for grade in grades %}
+              <option value="{{ grade }}">{{ grade }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Section
+          <select name="section">
+            <option value="">All sections</option>
+            {% for section in sections %}
+              <option value="{{ section }}">{{ section }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+      <label>Name, employee ID or subject
+        <input type="search" name="q" placeholder="Optional search">
+      </label>
+      <div class="two">
+        <label>Registered from
+          <input type="date" name="registered_from">
+        </label>
+        <label>Registered to
+          <input type="date" name="registered_to">
+        </label>
+      </div>
+      <div class="two">
+        <label>Access
+          <select name="access">
+            <option value="">All</option>
+            <option value="active">Active</option>
+            <option value="deactivated">Deactivated</option>
+          </select>
+        </label>
+        <label>Reports access
+          <select name="reports">
+            <option value="">All</option>
+            <option value="yes">Has Reports</option>
+            <option value="no">No Reports</option>
+          </select>
+        </label>
+      </div>
+      <label>School name or custom heading
+        <input name="title" value="{{ school_name }}" required>
+      </label>
+      <fieldset class="format-picker">
+        <legend>File type</legend>
+        <label><input type="radio" name="format" value="xlsx" checked> Excel</label>
+        <label><input type="radio" name="format" value="pdf"> PDF</label>
+        <label><input type="radio" name="format" value="docx"> Word</label>
+      </fieldset>
+      {% if current_user.is_admin %}
+      <label class="checks"><input type="checkbox" name="save_title" value="1"> Save this heading as the school name</label>
+      {% endif %}
+      <button class="btn primary" type="submit">Download teacher report</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

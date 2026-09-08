@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% from "macros.html" import rights_pills %}
+{% block title %}Dashboard · Attendance Register{% endblock %}
+{% block eyebrow %}Overview{% endblock %}
+{% block heading %}{{ current_user.full_name.split()[0] }}'s desk{% endblock %}
+
+{% block content %}
+{% if current_user.is_student %}
+  <section class="stat-grid">
+    <article class="stat-card">
+      <p>Attendance</p>
+      <strong>{{ stats.percent }}%</strong>
+      <span>{{ stats.present }} present · {{ stats.absent }} absent</span>
+    </article>
+    <article class="stat-card">
+      <p>Grade / section</p>
+      <strong>{{ current_user.student_profile.school_class.grade }}-{{ current_user.student_profile.school_class.section }}</strong>
+    </article>
+    <article class="stat-card">
+      <p>Roll number</p>
+      <strong>{{ current_user.student_profile.roll_number }}</strong>
+      <span>{{ current_user.student_profile.admission_number or current_user.username }}</span>
+    </article>
+  </section>
+
+  <section class="chart-grid">
+    <section class="panel">
+      <h3>Attendance mix</h3>
+      <div class="chart-box"><canvas id="chart-mix"></canvas></div>
+    </section>
+    <section class="panel">
+      <h3>Last 14 days</h3>
+      <div class="chart-box"><canvas id="chart-trend"></canvas></div>
+    </section>
+    <section class="panel">
+      <h3>Work copies</h3>
+      <div class="chart-box"><canvas id="chart-work"></canvas></div>
+    </section>
+  </section>
+
+  <div class="split">
+    <section class="panel">
+      <h3>Recent attendance</h3>
+      {% if recent_att %}
+      <table>
+      <thead><tr><th>Date</th><th>Time</th><th>Subject</th><th>Status</th></tr></thead>
+      <tbody>
+          {% for row in recent_att %}
+          <tr>
+            <td>{{ row.day.strftime('%d %b %Y') }}</td>
+            <td>{{ attendance_time(row) }}</td>
+            <td>{{ attendance_subject(row) }}</td>
+            <td><span class="pill {{ row.status }}">{{ row.status }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="muted">No attendance yet. Your teacher will scan your face at the door.</p>
+      {% endif %}
+    </section>
+    <section class="panel">
+      <h3>Work this week</h3>
+      <table class="data-table">
+        <thead><tr><th>Type</th><th>Title</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for row in recent_cw %}
+          <tr>
+            <td>Classwork</td>
+            <td>{{ row.title }}</td>
+            <td><span class="pill submitted">{{ row.status }}</span></td>
+          </tr>
+          {% endfor %}
+          {% for row in recent_hw %}
+          <tr>
+            <td>Homework</td>
+            <td>{{ row.title }}</td>
+            <td><span class="pill submitted">{{ row.status }}</span></td>
+          </tr>
+          {% endfor %}
+          {% if not recent_cw and not recent_hw %}
+          <tr><td colspan="3" class="muted">No classwork or homework scanned yet.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </section>
+  </div>
+{% else %}
+  <section class="stat-grid">
+    <article class="stat-card"><p>Classes</p><strong>{{ totals.classes }}</strong><span>Assigned to you</span></article>
+    <article class="stat-card"><p>Students</p><strong>{{ totals.students }}</strong><span>On the roll</span></article>
+    <article class="stat-card"><p>Present today</p><strong>{{ totals.present_today }}</strong><span>Face-scan ledger</span></article>
+    <article class="stat-card"><p>Staff</p><strong>{{ totals.teachers }}</strong><span>{% if current_user.is_admin %}Teachers in school{% else %}Your account{% endif %}</span></article>
+  </section>
+
+  <section class="chart-grid">
+    <section class="panel">
+      <h3>Today by class</h3>
+      <div class="chart-box tall"><canvas id="chart-classes"></canvas></div>
+    </section>
+    <section class="panel">
+      <h3>Today’s mix</h3>
+      <div class="chart-box"><canvas id="chart-today"></canvas></div>
+    </section>
+    <section class="panel">
+      <h3>This week</h3>
+      <div class="chart-box"><canvas id="chart-week"></canvas></div>
+    </section>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h3>Class registers</h3>
+      {% if current_user.is_admin or current_user.is_teacher %}
+        <div class="toolbar-actions">
+          <a class="btn primary small" href="{{ url_for('scan') }}">Open scanner</a>
+        </div>
+      {% endif %}
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Grade</th>
+          <th>Section</th>
+          <th>Students</th>
+          <th>Present today</th>
+          <th>Rights</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for card in class_cards %}
+        <tr>
+          <td class="num"><strong>{{ card.cls.grade }}</strong></td>
+          <td class="num">{{ card.cls.section }}</td>
+          <td class="num">{{ card.count }}</td>
+          <td class="num">{{ card.present }} / {{ card.count }}</td>
+          <td>{{ rights_pills(card.perm) }}</td>
+          <td class="actions"><a class="btn ghost small" href="{{ url_for('class_view', class_id=card.cls.id) }}">Open class</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="muted">No grades assigned yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script id="dashboard-charts-data" type="application/json">{{ chart_data | tojson }}</script>
+<script src="{{ url_for('static', filename='js/dashboard-charts.js') }}"></script>
+{% endblock %}

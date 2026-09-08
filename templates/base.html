@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>{% block title %}Attendance Register{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="brand">
+          <span class="brand-mark">AR</span>
+          <div class="brand-text">
+            <p class="brand-kicker">School ledger</p>
+            <h1>Attendance Register</h1>
+          </div>
+        </div>
+        <button class="nav-toggle" type="button" title="Open or close the side menu" aria-label="Open menu" aria-expanded="false" aria-controls="sidebar">
+          <svg class="nav-toggle-arrow" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <nav class="nav">
+        <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}">Dashboard</a>
+        {% if current_user.is_admin %}
+          <a href="{{ url_for('classes') }}" class="{{ 'active' if request.endpoint == 'classes' }}">Classes</a>
+          <a href="{{ url_for('students') }}" class="{{ 'active' if request.endpoint in ['students', 'edit_student'] }}">Students</a>
+          <a href="{{ url_for('teachers') }}" class="{{ 'active' if request.endpoint in ['teachers', 'permissions'] }}">Teachers</a>
+        {% endif %}
+        {% if current_user.is_admin or current_user.is_teacher %}
+          <a href="{{ url_for('scan') }}" class="{{ 'active' if request.endpoint == 'scan' }}">Face &amp; copy scan</a>
+          <a href="{{ url_for('attendance_log') }}" class="{{ 'active' if request.endpoint == 'attendance_log' }}">Attendance</a>
+        {% endif %}
+        {% if can_access_reports %}
+          <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint == 'reports' }}">Reports</a>
+        {% endif %}
+        {% if current_user.is_student %}
+          <a href="{{ url_for('my_records') }}" class="{{ 'active' if request.endpoint == 'my_records' }}">My records</a>
+        {% endif %}
+        <a href="{{ url_for('profile') }}" class="{{ 'active' if request.endpoint == 'profile' }}">Profile</a>
+      </nav>
+
+      {% if visible_classes and not current_user.is_student %}
+      <div class="sidebar-classes">
+        <p class="nav-label">Your classes</p>
+        {% for cls in visible_classes %}
+          <a href="{{ url_for('class_view', class_id=cls.id) }}">{{ cls.grade }}-{{ cls.section }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="sidebar-user">
+        <strong>{{ current_user.full_name }}</strong>
+        <span>{{ current_user.role.replace('_', ' ') }}</span>
+        <a class="btn ghost small" href="{{ url_for('logout') }}">Sign out</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-lead">
+          {% if request.endpoint not in ['dashboard', 'change_own_password'] %}
+          <a class="btn ghost small page-back" href="{{ url_for('dashboard') }}" data-back>Back</a>
+          {% endif %}
+          <div>
+            <p class="eyebrow">{% block eyebrow %}Register{% endblock %}</p>
+            <h2>{% block heading %}Dashboard{% endblock %}</h2>
+          </div>
+        </div>
+        <time datetime="{{ today.isoformat() }}">{{ today.strftime('%A, %d %B %Y') }}</time>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack">
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  {% block scripts %}{% endblock %}
+  <script src="{{ url_for('static', filename='js/actions.js') }}"></script>
+</body>
+</html>

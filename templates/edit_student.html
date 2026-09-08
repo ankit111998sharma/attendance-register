@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ student.user.full_name }}{% endblock %}
+{% block eyebrow %}Student details{% endblock %}
+{% block heading %}Edit {{ student.user.full_name }}{% endblock %}
+
+{% block content %}
+<div class="split">
+  <section class="panel">
+    <p class="muted">Class {{ student.school_class.grade }}-{{ student.school_class.section }} · Roll {{ student.roll_number }}</p>
+    <form method="post" class="stack">
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <label>Full name<input name="full_name" value="{{ student.user.full_name }}" required></label>
+      <label>Admission number<input name="admission_number" value="{{ student.admission_number or student.user.username }}" required></label>
+      <label>Email<input type="email" name="email" value="{{ student.user.email or '' }}" required></label>
+      <label>Roll number<input name="roll_number" value="{{ student.roll_number }}" required></label>
+      <label>Class / section
+        <select name="class_id" required>
+          {% for cls in classes %}
+            <option value="{{ cls.id }}" {% if cls.id == student.class_id %}selected{% endif %}>{{ cls.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="row-actions">
+        <button class="btn primary" type="submit">Save details</button>
+        <a class="btn ghost" href="{{ next_url }}" data-back>Back</a>
+        <a class="btn ghost" href="{{ url_for('enroll_face', student_id=student.id) }}">Face photos</a>
+      </div>
+    </form>
+  </section>
+  <div class="stack">
+    {% if current_user.is_admin %}
+    <section class="panel">
+      <h3>Set password</h3>
+      <p class="muted">Change this student’s password now. They must sign in again. Unused email reset links are cancelled.</p>
+      <a class="btn primary" href="{{ url_for('set_user_password', user_id=student.user.id, next=next_url) }}">Set password manually</a>
+    </section>
+    {% endif %}
+    <section class="panel">
+      <h3>Remove student</h3>
+      <p class="muted">This deletes the account and all attendance, classwork, homework and face photos. It cannot be undone.</p>
+      <form method="post" action="{{ url_for('delete_student', student_id=student.id) }}" onsubmit="return confirm('Delete {{ student.user.full_name }} permanently?');">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <button class="btn danger" type="submit">Delete student</button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

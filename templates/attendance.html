@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Attendance · Attendance Register{% endblock %}
+{% block eyebrow %}Class register{% endblock %}
+{% block heading %}Attendance{% endblock %}
+
+{% block content %}
+<section class="panel" data-list-panel>
+  <p class="muted">Times are Indian Standard Time. A student is stored once for the same subject during a 30–60 minute class. A different subject in that hour creates a new record.</p>
+  <form method="get" class="filter-bar">
+    <label>Class
+      <select name="class_id">
+        <option value="">All classes</option>
+        {% for cls in classes %}
+          <option value="{{ cls.id }}" {% if selected_class == cls.id %}selected{% endif %}>{{ cls.grade }}-{{ cls.section }} · {{ cls.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Subject
+      <select name="subject">
+        <option value="">All subjects</option>
+        {% for item in subjects %}
+          <option value="{{ item }}" {% if selected_subject == item %}selected{% endif %}>{{ item }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="date-field">From
+      <input type="date" name="day" value="{{ day_from }}">
+    </label>
+    <label class="date-field">To
+      <input type="date" name="until" value="{{ day_to }}">
+    </label>
+    <button class="btn primary small" type="submit">Filter</button>
+    <a class="btn ghost small" href="{{ url_for('attendance_log') }}">Today</a>
+  </form>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Subject</th>
+        <th>Grade</th>
+        <th>Section</th>
+        <th>Student</th>
+        <th>Admission</th>
+        <th>Roll</th>
+        <th>Status</th>
+        <th>Marked by</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.day.strftime('%d %b %Y') }}</td>
+        <td>{{ attendance_time(row) }}</td>
+        <td>{{ attendance_subject(row) }}</td>
+        <td class="num">{{ row.school_class.grade if row.school_class else row.student.school_class.grade }}</td>
+        <td class="num">{{ row.school_class.section if row.school_class else row.student.school_class.section }}</td>
+        <td><strong>{{ row.student.user.full_name }}</strong></td>
+        <td>{{ row.student.admission_number or row.student.user.username }}</td>
+        <td class="num">{{ row.student.roll_number }}</td>
+        <td><span class="pill {{ row.status }}">{{ row.status }}</span></td>
+        <td>{{ row.marked_by.full_name if row.marked_by else '—' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="10" class="muted">No attendance for this class, date or subject.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

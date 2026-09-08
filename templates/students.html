@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% from "macros.html" import action_confirm, action_delete, action_link, action_menu, icon_activate, icon_deactivate, icon_delete, icon_edit, icon_password, icon_photos, password_panel with context %}
+{% block title %}Students · Attendance Register{% endblock %}
+{% block eyebrow %}Super admin{% endblock %}
+{% block heading %}Students{% endblock %}
+
+{% block content %}
+<section class="panel view-toolbar" data-toolbar>
+  <div class="panel-head">
+    <h3>Student roll</h3>
+    <div class="row-actions toolbar-actions">
+      <button class="btn primary" type="button" data-open-panel="register-student" data-open-label="Register new student" data-close-label="Close form" aria-expanded="false" aria-controls="register-student">Register new student</button>
+      <button class="btn ghost" type="button" data-open-panel="import-students" data-open-label="Import Excel" data-close-label="Close form" aria-expanded="false" aria-controls="import-students">Import Excel</button>
+      <button class="btn ghost" type="button" data-open-panel="student-passwords" data-open-label="Passwords" data-close-label="Close passwords" aria-expanded="false" aria-controls="student-passwords">Passwords</button>
+      <button class="btn danger" type="submit" form="bulk-delete-students" data-bulk-submit="bulk-delete-students" disabled>Delete selected</button>
+    </div>
+  </div>
+</section>
+
+<form id="bulk-delete-students" method="post" action="{{ url_for('bulk_delete_students') }}" data-bulk-form>
+  <input type="hidden" name="next" value="{{ request.full_path }}">
+</form>
+
+<section class="panel" id="register-student" hidden data-form-panel>
+  <h3>Register a student</h3>
+  <p class="muted">After you save the account, capture {{ min_photos }}–{{ max_photos }} different face photos so teachers can scan attendance automatically.</p>
+  <form method="post" class="stack">
+    <div class="two">
+      <label>Full name<input name="full_name" required></label>
+      <label>Admission number<input name="admission_number" required></label>
+    </div>
+    <div class="two">
+      <label>Email<input type="email" name="email" required placeholder="student@school.com"></label>
+      <label>Password<input name="password" value="student123"></label>
+    </div>
+    <div class="two">
+      <label>Roll number<input name="roll_number" required></label>
+      <label>Class
+        <select name="class_id" required>
+          {% for cls in classes %}
+            <option value="{{ cls.id }}">{{ cls.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+    <div class="row-actions">
+      <button class="btn primary" type="submit">Save and capture faces</button>
+      <button class="btn ghost" type="button" data-close-panel="register-student">Back</button>
+    </div>
+  </form>
+</section>
+
+{{ password_panel('students', password_rows, date_label, 'student_passwords_xlsx', 'student-passwords', registered_from, registered_to, search) }}
+
+<section class="panel" id="import-students" hidden data-form-panel>
+  <h3>Import students from Excel</h3>
+  <p class="muted">Match these headers: Full name, Admission number, Email, Roll number, Grade, Section. Admission number becomes the username. Duplicate admission numbers are skipped. If a Grade and Section are not already in Classes, that class is created from the import. Photo columns are optional and ignored. A random password is created for first sign-in.</p>
+  <p class="muted"><a href="{{ url_for('student_import_template') }}">Download student Excel template</a></p>
+  <form method="post" action="{{ url_for('import_students') }}" enctype="multipart/form-data" class="stack">
+    <label>Excel file (.xlsx)
+      <input type="file" name="excel_file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+    </label>
+    <label>Default class if a row has no class
+      <select name="class_id">
+        <option value="">Use class columns in the file</option>
+        {% for cls in classes %}
+          <option value="{{ cls.id }}">{{ cls.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="row-actions">
+      <button class="btn primary" type="submit">Import students</button>
+      <button class="btn ghost" type="button" data-close-panel="import-students">Back</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel" data-list-panel>
+  <form method="get" class="filter-bar">
+    <label>Grade
+      <select name="grade">
+        <option value="">All grades</option>
+        {% for grade in grades %}
+          <option value="{{ grade }}" {% if selected_grade == grade %}selected{% endif %}>{{ grade }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Section
+      <select name="section">
+        <option value="">All sections</option>
+        {% for section in sections %}
+          <option value="{{ section }}" {% if selected_section == section %}selected{% endif %}>{{ section }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="grow">Name or roll
+      <input type="search" name="q" value="{{ search }}" placeholder="Name or admission number">
+    </label>
+    <button class="btn primary small" type="submit">Filter</button>
+    <a class="btn ghost small" href="{{ url_for('students') }}">Clear</a>
+  </form>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="check">
+          <input type="checkbox" data-select-all="bulk-delete-students" aria-label="Select all listed students" {% if not rows %}disabled{% endif %}>
+        </th>
+        <th>Name</th>
+        <th>Admission number</th>
+        <th>Email</th>
+        <th>Grade</th>
+        <th>Section</th>
+        <th>Roll</th>
+        <th>Registered</th>
+        <th>Face photos</th>
+        <th>Access</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for student in rows %}
+      <tr>
+        <td class="check">
+          <input type="checkbox" name="student_id" value="{{ student.id }}" form="bulk-delete-students" aria-label="Select {{ student.user.full_name }}">
+        </td>
+        <td><strong>{{ student.user.full_name }}</strong></td>
+        <td>{{ student.admission_number or student.user.username }}</td>
+        <td>{{ student.user.email or '—' }}</td>
+        <td class="num">{{ student.school_class.grade }}</td>
+        <td class="num">{{ student.school_class.section }}</td>
+        <td class="num">{{ student.roll_number }}</td>
+        <td>{{ student.user.created_at.strftime('%d %b %Y') if student.user.created_at else '—' }}</td>
+        <td>
+          {% if student.face_enrolled %}
+            <span class="pill present">{{ student.face_photo_count or 0 }} / {{ max_photos }} ready</span>
+          {% elif (student.face_photo_count or 0) > 0 %}
+            <span class="pill late">{{ student.face_photo_count }} / {{ min_photos }}</span>
+          {% else %}
+            <span class="pill absent">pending</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if student.user.is_active %}
+            <span class="pill present">Active</span>
+          {% else %}
+            <span class="pill absent">Deactivated</span>
+          {% endif %}
+        </td>
+        <td class="actions">
+          {% call action_menu() %}
+            {{ action_link(url_for('edit_student', student_id=student.id, next=request.full_path), 'Edit details', icon_edit()) }}
+            {{ action_link(url_for('set_user_password', user_id=student.user.id, next=request.full_path), 'Set password', icon_password()) }}
+            {{ action_link(url_for('enroll_face', student_id=student.id), 'Face photos', icon_photos()) }}
+            {% if can_deactivate_user(current_user, student.user) %}
+              {% if student.user.is_active %}
+                {{ action_confirm('access-student-' ~ student.id, 'Deactivate access', 'Deactivate ' ~ student.user.full_name ~ '? They will not be able to sign in.', icon_deactivate(), true) }}
+              {% else %}
+                {{ action_confirm('access-student-' ~ student.id, 'Restore access', 'Restore sign-in for ' ~ student.user.full_name ~ '?', icon_activate()) }}
+              {% endif %}
+            {% endif %}
+            {{ action_delete('delete-student-' ~ student.id, 'Delete student', 'Delete ' ~ student.user.full_name ~ ' and all attendance, classwork and homework?', icon_delete()) }}
+          {% endcall %}
+          <form id="delete-student-{{ student.id }}" method="post" action="{{ url_for('delete_student', student_id=student.id) }}" hidden>
+            <input type="hidden" name="next" value="{{ request.full_path }}">
+          </form>
+          {% if can_deactivate_user(current_user, student.user) %}
+          <form id="access-student-{{ student.id }}" method="post" action="{{ url_for('toggle_user_access', user_id=student.user.id) }}" hidden>
+            <input type="hidden" name="next" value="{{ request.full_path }}">
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="11" class="muted">No students match this grade or section filter.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

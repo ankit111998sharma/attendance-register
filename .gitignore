@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+instance/
+static/uploads/faces/*
+static/uploads/work/*
+!static/uploads/faces/.gitkeep
+!static/uploads/work/.gitkeep
+.DS_Store

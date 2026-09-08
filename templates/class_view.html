@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% from "macros.html" import action_confirm, action_delete, action_link, action_menu, icon_activate, icon_deactivate, icon_delete, icon_edit, icon_password, icon_photos, student_export_panel with context %}
+{% block title %}{{ school_class.label }} · Attendance Register{% endblock %}
+{% block eyebrow %}Class register{% endblock %}
+{% block heading %}{{ school_class.grade }}-{{ school_class.section }}{% endblock %}
+
+{% block content %}
+{{ student_export_panel([], [], [], '', '', school_class.id, school_name, '', school_class) }}
+<section class="panel" data-list-panel>
+  <div class="panel-head">
+    <p class="muted">{{ students|length }} students · {{ today.strftime('%d %b %Y') }} IST · {{ class_subject }}</p>
+    <div class="row-actions toolbar-actions">
+      {% if current_user.is_admin %}
+        <a class="btn ghost small" href="{{ url_for('edit_class', class_id=school_class.id, next=request.path) }}">Edit class</a>
+      {% endif %}
+      {% if perm and perm.can_read %}
+        <button class="btn ghost small" type="button" data-open-panel="download-students" data-open-label="Download" data-close-label="Close download" aria-expanded="false" aria-controls="download-students">Download</button>
+      {% endif %}
+      <a class="btn ghost small" href="{{ url_for('attendance_log', class_id=school_class.id) }}">Attendance log</a>
+      {% if perm and (perm.can_write or perm.can_update) %}
+        <a class="btn primary small" href="{{ url_for('scan') }}">Scan faces</a>
+      {% endif %}
+      {% if current_user.is_admin and students %}
+        <button class="btn danger small" type="submit" form="bulk-delete-students" data-bulk-submit="bulk-delete-students" disabled>Delete selected</button>
+      {% endif %}
+    </div>
+  </div>
+  {% if current_user.is_admin %}
+  <form id="bulk-delete-students" method="post" action="{{ url_for('bulk_delete_students') }}" data-bulk-form>
+    <input type="hidden" name="next" value="{{ request.path }}">
+  </form>
+  {% endif %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        {% if current_user.is_admin %}
+        <th class="check">
+          <input type="checkbox" data-select-all="bulk-delete-students" aria-label="Select all students in this class" {% if not students %}disabled{% endif %}>
+        </th>
+        {% endif %}
+        <th>Roll</th>
+        <th>Name</th>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Face</th>
+        <th>Attendance today</th>
+        <th>Classwork</th>
+        <th>Homework</th>
+        <th>Access</th>
+        {% if perm and (perm.can_write or perm.can_update or perm.can_deactivate) %}<th>Actions</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for student in students %}
+      {% set atts = today_map.get(student.id) or [] %}
+      {% set current_att = session_map.get(student.id) %}
+      {% set work = work_map.get(student.id) %}
+      <tr>
+        {% if current_user.is_admin %}
+        <td class="check">
+          <input type="checkbox" name="student_id" value="{{ student.id }}" form="bulk-delete-students" aria-label="Select {{ student.user.full_name }}">
+        </td>
+        {% endif %}
+        <td class="num">{{ student.roll_number }}</td>
+        <td><strong>{{ student.user.full_name }}</strong></td>
+        <td>{{ student.user.username }}</td>
+        <td>{{ student.user.email or '—' }}</td>
+        <td>
+          {% if student.face_enrolled %}<span class="pill present">{{ student.face_photo_count or 0 }} photos</span>
+          {% elif (student.face_photo_count or 0) > 0 %}<span class="pill late">{{ student.face_photo_count }} photos</span>
+          {% else %}<span class="pill absent">not enrolled</span>{% endif %}
+        </td>
+        <td>
+          {% if atts %}
+            <div class="att-pills">
+            {% for att in atts %}
+              <span class="pill {{ att.status }}" title="{{ attendance_time(att) }}">{{ attendance_subject(att) }} · {{ att.status }} · {{ attendance_time(att) }}</span>
+            {% endfor %}
+            </div>
+          {% else %}
+            <span class="muted">not marked</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if work and work.cw %}<span class="pill submitted">{{ work.cw.status }}</span>
+          {% else %}<span class="muted">pending</span>{% endif %}
+        </td>
+        <td>
+          {% if work and work.hw %}<span class="pill submitted">{{ work.hw.status }}</span>
+          {% else %}<span class="muted">pending</span>{% endif %}
+        </td>
+        <td>
+          {% if student.user.is_active %}
+            <span class="pill present">Active</span>
+          {% else %}
+            <span class="pill absent">Deactivated</span>
+          {% endif %}
+        </td>
+        {% if perm and (perm.can_write or perm.can_update or perm.can_deactivate) %}
+        <td class="actions">
+          <div class="row-actions">
+          {% if (perm.can_write or perm.can_update) and not current_att %}
+          <form method="post" action="{{ url_for('manual_attendance') }}" class="inline-form">
+            <input type="hidden" name="student_id" value="{{ student.id }}">
+            <input type="hidden" name="subject" value="{{ class_subject }}">
+            <select name="status">
+              <option value="present">Present</option>
+              <option value="late">Late</option>
+              <option value="absent">Absent</option>
+            </select>
+            <button class="btn ghost small" type="submit">Mark {{ class_subject }}</button>
+          </form>
+          {% endif %}
+          {% call action_menu() %}
+            {% if current_user.is_admin or perm.can_write %}
+              {{ action_link(url_for('enroll_face', student_id=student.id), 'Face photos', icon_photos()) }}
+            {% endif %}
+            {% if current_user.is_admin and student.user %}
+              {{ action_link(url_for('set_user_password', user_id=student.user.id, next=request.path), 'Set password', icon_password()) }}
+            {% endif %}
+            {% if can_deactivate_user(current_user, student.user) %}
+              {% if student.user.is_active %}
+                {{ action_confirm('access-class-student-' ~ student.id, 'Deactivate access', 'Deactivate ' ~ student.user.full_name ~ '? They will not be able to sign in.', icon_deactivate(), true) }}
+              {% else %}
+                {{ action_confirm('access-class-student-' ~ student.id, 'Restore access', 'Restore sign-in for ' ~ student.user.full_name ~ '?', icon_activate()) }}
+              {% endif %}
+            {% endif %}
+            {% if current_user.is_admin or perm.can_update %}
+              {{ action_link(url_for('edit_student', student_id=student.id, next=request.path), 'Edit details', icon_edit()) }}
+              {{ action_delete('delete-class-student-' ~ student.id, 'Delete student', 'Delete ' ~ student.user.full_name ~ ' and all of their records?', icon_delete()) }}
+            {% endif %}
+          {% endcall %}
+            {% if can_deactivate_user(current_user, student.user) %}
+            <form id="access-class-student-{{ student.id }}" method="post" action="{{ url_for('toggle_user_access', user_id=student.user.id) }}" hidden>
+              <input type="hidden" name="next" value="{{ request.path }}">
+            </form>
+            {% endif %}
+            {% if current_user.is_admin or perm.can_update %}
+            <form id="delete-class-student-{{ student.id }}" method="post" action="{{ url_for('delete_student', student_id=student.id) }}" hidden>
+              <input type="hidden" name="next" value="{{ request.path }}">
+            </form>
+            {% endif %}
+          </div>
+          </td>
+        {% endif %}
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="{{ (11 if current_user.is_admin else 10) if perm and (perm.can_write or perm.can_update or perm.can_deactivate) else (10 if current_user.is_admin else 9) }}" class="muted">No students in this class yet.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

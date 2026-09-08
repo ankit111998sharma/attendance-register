@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Profile · Attendance Register{% endblock %}
+{% block eyebrow %}Account{% endblock %}
+{% block heading %}{{ current_user.full_name }}{% endblock %}
+
+{% block content %}
+<div class="split">
+  <section class="panel">
+    <dl class="meta-list">
+      <div><dt>Username</dt><dd>{{ current_user.username }}</dd></div>
+      <div><dt>Role</dt><dd>{{ current_user.role.replace('_', ' ') }}</dd></div>
+      {% if current_user.is_student and current_user.student_profile %}
+        <div><dt>Grade / section</dt><dd>{{ current_user.student_profile.school_class.grade }}-{{ current_user.student_profile.school_class.section }}</dd></div>
+        <div><dt>Roll</dt><dd>{{ current_user.student_profile.roll_number }}</dd></div>
+        <div><dt>Face enrolled</dt><dd>{{ 'Yes' if current_user.student_profile.face_enrolled else 'Not yet' }}</dd></div>
+      {% endif %}
+      {% if current_user.is_teacher and current_user.teacher_profile %}
+        <div><dt>Subject</dt><dd>{{ current_user.teacher_profile.subject or '—' }}</dd></div>
+      {% endif %}
+    </dl>
+    <h3>Registered email</h3>
+    <p class="muted">Forgot-password mail is sent only to this address.</p>
+    <form method="post" class="stack">
+      <label>Email<input type="email" name="email" value="{{ current_user.email or '' }}" required></label>
+      <button class="btn primary" type="submit">Save email</button>
+    </form>
+  </section>
+
+  {% if current_user.is_admin %}
+  <div class="stack">
+  <section class="panel">
+    <h3>School name</h3>
+    <p class="muted">This heading is printed on student Excel, PDF and Word downloads. You can still type a different name when you download.</p>
+    <form method="post" class="stack">
+      <input type="hidden" name="action" value="school">
+      <label>School name or custom heading
+        <input name="school_name" value="{{ school_name }}" placeholder="Sunrise Public School" required>
+      </label>
+      <button class="btn primary" type="submit">Save school name</button>
+    </form>
+  </section>
+  <section class="panel">
+    <h3>Outgoing email (SMTP)</h3>
+    <p class="muted">Needed so reset links can be mailed. For Gmail use an app password, not your normal password.</p>
+    <form method="post" class="stack">
+      <input type="hidden" name="action" value="smtp">
+      <label>SMTP host<input name="smtp_host" value="{{ mail.host }}" placeholder="smtp.gmail.com"></label>
+      <label>Port<input name="smtp_port" value="{{ mail.port }}"></label>
+      <label>SMTP username<input name="smtp_username" value="{{ mail.username }}" placeholder="you@gmail.com"></label>
+      <label>SMTP password<input type="password" name="smtp_password" placeholder="{{ 'Leave blank to keep the saved password' if mail.password else 'App password' }}"></label>
+      <label>From address<input type="email" name="smtp_from" value="{{ mail.sender }}" placeholder="you@gmail.com"></label>
+      <label class="checks"><input type="checkbox" name="smtp_use_tls" {% if mail.use_tls %}checked{% endif %}> Use TLS (port 587)</label>
+      <button class="btn primary" type="submit">Save email settings</button>
+    </form>
+    <p class="muted">{{ 'Email sending is ready.' if mail_ready else 'Email sending is not ready until host, username and password are saved.' }}</p>
+  </section>
+  </div>
+  {% else %}
+  <section class="panel">
+    <p class="muted">
+      {% if current_user.is_student %}
+        You can view your attendance, classwork and homework. You cannot edit the register.
+      {% else %}
+        Your rights are set by the super admin for each class: read, write, or update.
+      {% endif %}
+    </p>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

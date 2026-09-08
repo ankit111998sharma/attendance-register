@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Permissions · Attendance Register{% endblock %}
+{% block eyebrow %}Super admin{% endblock %}
+{% block heading %}Teacher permissions{% endblock %}
+
+{% block content %}
+<div class="split">
+  <section class="panel">
+    <h3>Grant class rights</h3>
+    <p class="muted">Read lets a teacher view the register. Write lets them scan and add records. Update lets them change existing marks.</p>
+    <form method="post" class="stack">
+      <label>Teacher
+        <select name="teacher_id" required>
+          {% for teacher in teachers %}
+            <option value="{{ teacher.id }}">{{ teacher.user.full_name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Class
+        <select name="class_id" required>
+          {% for cls in classes %}
+            <option value="{{ cls.id }}">{{ cls.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <fieldset class="checks">
+        <label><input type="checkbox" name="can_read" checked> Read</label>
+        <label><input type="checkbox" name="can_write"> Write</label>
+        <label><input type="checkbox" name="can_update"> Update</label>
+      </fieldset>
+      <button class="btn primary" type="submit">Save permission</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h3>Current grants</h3>
+    <table>
+      <thead><tr><th>Teacher</th><th>Grade</th><th>Section</th><th>Rights</th><th></th></tr></thead>
+      <tbody>
+        {% for perm in rows %}
+        <tr>
+          <td>{{ perm.teacher.user.full_name }}</td>
+          <td class="num">{{ perm.school_class.grade }}</td>
+          <td class="num">{{ perm.school_class.section }}</td>
+          <td class="rights">
+            {% if perm.can_read %}<span>Read</span>{% endif %}
+            {% if perm.can_write %}<span>Write</span>{% endif %}
+            {% if perm.can_update %}<span>Update</span>{% endif %}
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('delete_permission', perm_id=perm.id) }}">
+              <button class="btn danger small" type="submit">Revoke</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="muted">No teacher permissions yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

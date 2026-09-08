@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}My records · Attendance Register{% endblock %}
+{% block eyebrow %}Student account{% endblock %}
+{% block heading %}{{ student.user.full_name }}{% endblock %}
+
+{% block content %}
+<section class="stat-grid">
+  <article class="stat-card"><p>Grade / section</p><strong>{{ student.school_class.grade }}-{{ student.school_class.section }}</strong></article>
+  <article class="stat-card"><p>Attendance</p><strong>{{ stats.percent }}%</strong><span>{{ stats.present }} present · {{ stats.late }} late · {{ stats.absent }} absent</span></article>
+  <article class="stat-card"><p>Roll number</p><strong>{{ student.roll_number }}</strong><span>{{ student.admission_number or student.user.username }}</span></article>
+</section>
+
+<div class="split">
+  <section class="panel">
+    <h3>Attendance</h3>
+    <table>
+      <thead><tr><th>Date</th><th>Time</th><th>Subject</th><th>Status</th><th>How marked</th></tr></thead>
+      <tbody>
+        {% for row in attendance %}
+        <tr>
+          <td>{{ row.day.strftime('%d %b %Y') }}</td>
+          <td>{{ attendance_time(row) }}</td>
+          <td>{{ attendance_subject(row) }}</td>
+          <td><span class="pill {{ row.status }}">{{ row.status }}</span></td>
+          <td>{{ row.source.replace('_', ' ') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="muted">No attendance recorded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  <section class="panel">
+    <h3>Classwork &amp; homework</h3>
+    <table>
+      <thead><tr><th>Date</th><th>Type</th><th>Title</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for row in classwork %}
+        <tr>
+          <td>{{ row.day.strftime('%d %b %Y') }}</td>
+          <td>Classwork</td>
+          <td>{{ row.title }}</td>
+          <td><span class="pill submitted">{{ row.status }}</span></td>
+        </tr>
+        {% endfor %}
+        {% for row in homework %}
+        <tr>
+          <td>{{ row.day.strftime('%d %b %Y') }}</td>
+          <td>Homework</td>
+          <td>{{ row.title }}</td>
+          <td><span class="pill submitted">{{ row.status }}</span></td>
+        </tr>
+        {% endfor %}
+        {% if not classwork and not homework %}
+        <tr><td colspan="4" class="muted">No work copies scanned yet.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

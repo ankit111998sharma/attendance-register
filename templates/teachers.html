@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% from "macros.html" import action_confirm, action_link, action_menu, class_checkboxes, icon_activate, icon_deactivate, icon_password, password_panel, rights_pills %}
+{% block title %}Teachers · Attendance Register{% endblock %}
+{% block eyebrow %}Super admin{% endblock %}
+{% block heading %}Teachers{% endblock %}
+
+{% block content %}
+<section class="panel view-toolbar" data-toolbar>
+  <div class="panel-head">
+    <h3>Teacher list</h3>
+    <div class="row-actions toolbar-actions">
+      <button class="btn primary" type="button" data-open-panel="register-teacher" data-open-label="Register new teacher" data-close-label="Close form" aria-expanded="false" aria-controls="register-teacher">Register new teacher</button>
+      <button class="btn ghost" type="button" data-open-panel="grant-permission" data-open-label="Give permission" data-close-label="Close form" aria-expanded="false" aria-controls="grant-permission">Give permission</button>
+      <button class="btn ghost" type="button" data-open-panel="import-teachers" data-open-label="Import Excel" data-close-label="Close form" aria-expanded="false" aria-controls="import-teachers">Import Excel</button>
+      <button class="btn ghost" type="button" data-open-panel="teacher-passwords" data-open-label="Passwords" data-close-label="Close passwords" aria-expanded="false" aria-controls="teacher-passwords">Passwords</button>
+    </div>
+  </div>
+</section>
+
+<section class="panel" id="register-teacher" hidden data-form-panel>
+  <h3>Register a teacher</h3>
+  <p class="muted">Create the account and choose one or more classes plus read, write or update rights in the same step.</p>
+  <form method="post" class="stack">
+    <input type="hidden" name="action" value="add_teacher">
+    <div class="two">
+      <label>Full name<input name="full_name" required></label>
+      <label>Employee ID<input name="employee_id" required></label>
+    </div>
+    <div class="two">
+      <label>Username<input name="username" placeholder="Leave blank to use employee ID"></label>
+      <label>Email<input type="email" name="email" required placeholder="teacher@school.com"></label>
+    </div>
+    <div class="two">
+      <label>Password<input name="password" value="teacher123"></label>
+      <label>Subject<input name="subject" placeholder="Science"></label>
+    </div>
+    {{ class_checkboxes(classes) }}
+    <fieldset class="checks">
+      <legend>Permission</legend>
+      <label><input type="checkbox" name="can_read" checked> Read</label>
+      <label><input type="checkbox" name="can_write"> Write</label>
+      <label><input type="checkbox" name="can_update"> Update</label>
+      <label><input type="checkbox" name="can_deactivate"> Deactivate students</label>
+      <label><input type="checkbox" name="can_reports"> Reports tab</label>
+    </fieldset>
+    <p class="muted">Read = view register. Write = scan attendance and work copies. Update = change existing records and student details. Write or update both let a teacher scan and mark their own classes. Deactivate students = turn a student account off or on. Reports tab = download student and teacher files. A teacher can never deactivate another teacher or the super admin.</p>
+    <div class="row-actions">
+      <button class="btn primary" type="submit">Save teacher</button>
+      <button class="btn ghost" type="button" data-close-panel="register-teacher">Back</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel" id="grant-permission" hidden data-form-panel>
+  <h3>Give permission</h3>
+  <p class="muted">Change rights for a teacher already on staff, or add several classes at once.</p>
+  <form method="post" class="stack" data-require-group="class_id">
+    <input type="hidden" name="action" value="grant">
+    <label>Teacher
+      <select name="teacher_id" required>
+        {% for teacher in all_teachers %}
+          <option value="{{ teacher.id }}">{{ teacher.user.full_name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    {{ class_checkboxes(classes, true) }}
+    <fieldset class="checks">
+      <legend>Permission</legend>
+      <label><input type="checkbox" name="can_read" checked> Read</label>
+      <label><input type="checkbox" name="can_write"> Write</label>
+      <label><input type="checkbox" name="can_update"> Update</label>
+      <label><input type="checkbox" name="can_deactivate"> Deactivate students</label>
+    </fieldset>
+    <div class="row-actions">
+      <button class="btn primary" type="submit">Save permission</button>
+      <button class="btn ghost" type="button" data-close-panel="grant-permission">Back</button>
+    </div>
+  </form>
+  <h3>Reports access</h3>
+  <p class="muted">Give a teacher the Reports tab so they can download student and teacher files with filters.</p>
+  <form method="post" class="stack">
+    <input type="hidden" name="action" value="reports">
+    <label>Teacher
+      <select name="teacher_id" required>
+        {% for teacher in all_teachers %}
+          <option value="{{ teacher.id }}">{{ teacher.user.full_name }}{% if teacher.can_reports %} · has Reports{% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="checks"><input type="checkbox" name="can_reports"> Allow the Reports tab</label>
+    <div class="row-actions">
+      <button class="btn primary" type="submit">Save reports access</button>
+    </div>
+  </form>
+</section>
+
+{{ password_panel('teachers', password_rows, date_label, 'teacher_passwords_xlsx', 'teacher-passwords', registered_from, registered_to, search) }}
+
+<section class="panel" id="import-teachers" hidden data-form-panel>
+  <h3>Import teachers from Excel</h3>
+  <p class="muted">Match these headers: Full name, Employee ID, Username, Email, Subject, Grade, Section. Duplicate employee IDs are skipped. Photo columns are optional and ignored. A random password is created. Imported teachers get read permission only.</p>
+  <p class="muted"><a href="{{ url_for('teacher_import_template') }}">Download teacher Excel template</a></p>
+  <form method="post" action="{{ url_for('import_teachers') }}" enctype="multipart/form-data" class="stack">
+    <label>Excel file (.xlsx)
+      <input type="file" name="excel_file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+    </label>
+    <label>Default class if a row has no class
+      <select name="class_id">
+        <option value="">No class unless the file has one</option>
+        {% for cls in classes %}
+          <option value="{{ cls.id }}">{{ cls.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="row-actions">
+      <button class="btn primary" type="submit">Import teachers</button>
+      <button class="btn ghost" type="button" data-close-panel="import-teachers">Back</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel" data-list-panel>
+  <form method="get" class="filter-bar">
+    <label class="grow">Name or username
+      <input type="search" name="q" value="{{ search }}" placeholder="Name or employee ID">
+    </label>
+    <button class="btn primary small" type="submit">Filter</button>
+    <a class="btn ghost small" href="{{ url_for('teachers') }}">Clear</a>
+  </form>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Employee ID</th>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Subject</th>
+        <th>Grade</th>
+        <th>Section</th>
+        <th>Registered</th>
+        <th>Rights</th>
+        <th>Reports</th>
+        <th>Access</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for teacher in rows %}
+        {% if teacher.permissions %}
+          {% for perm in teacher.permissions %}
+          <tr>
+            <td><strong>{{ teacher.user.full_name }}</strong></td>
+            <td>{{ teacher.employee_id or '—' }}</td>
+            <td>{{ teacher.user.username }}</td>
+            <td>{{ teacher.user.email or '—' }}</td>
+            <td>{{ teacher.subject or '—' }}</td>
+            <td class="num">{{ perm.school_class.grade }}</td>
+            <td class="num">{{ perm.school_class.section }}</td>
+            <td>{{ teacher.user.created_at.strftime('%d %b %Y') if teacher.user.created_at else '—' }}</td>
+            <td>{{ rights_pills(perm) }}</td>
+            <td>
+              {% if teacher.can_reports %}
+                <span class="pill present">Yes</span>
+              {% else %}
+                <span class="muted">No</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if teacher.user.is_active %}
+                <span class="pill present">Active</span>
+              {% else %}
+                <span class="pill absent">Deactivated</span>
+              {% endif %}
+            </td>
+            <td class="actions">
+              <div class="row-actions">
+                {% call action_menu() %}
+                  {{ action_link(url_for('set_user_password', user_id=teacher.user.id, next=request.full_path), 'Set password', icon_password()) }}
+                  {% if teacher.can_reports %}
+                    {{ action_confirm('reports-teacher-' ~ teacher.user.id ~ '-' ~ perm.id, 'Remove reports', 'Remove Reports tab access from ' ~ teacher.user.full_name ~ '?', icon_deactivate(), true) }}
+                  {% else %}
+                    {{ action_confirm('reports-teacher-' ~ teacher.user.id ~ '-' ~ perm.id, 'Allow reports', 'Give ' ~ teacher.user.full_name ~ ' the Reports tab?', icon_activate()) }}
+                  {% endif %}
+                  {% if can_deactivate_user(current_user, teacher.user) %}
+                    {% if teacher.user.is_active %}
+                      {{ action_confirm('access-teacher-' ~ teacher.user.id ~ '-' ~ perm.id, 'Deactivate access', 'Deactivate ' ~ teacher.user.full_name ~ '? They will not be able to sign in.', icon_deactivate(), true) }}
+                    {% else %}
+                      {{ action_confirm('access-teacher-' ~ teacher.user.id ~ '-' ~ perm.id, 'Restore access', 'Restore sign-in for ' ~ teacher.user.full_name ~ '?', icon_activate()) }}
+                    {% endif %}
+                  {% endif %}
+                {% endcall %}
+                <form id="reports-teacher-{{ teacher.user.id }}-{{ perm.id }}" method="post" action="{{ url_for('teachers') }}" hidden>
+                  <input type="hidden" name="action" value="toggle_reports">
+                  <input type="hidden" name="teacher_id" value="{{ teacher.id }}">
+                  <input type="hidden" name="next" value="{{ request.full_path }}">
+                </form>
+                {% if can_deactivate_user(current_user, teacher.user) %}
+                <form id="access-teacher-{{ teacher.user.id }}-{{ perm.id }}" method="post" action="{{ url_for('toggle_user_access', user_id=teacher.user.id) }}" hidden>
+                  <input type="hidden" name="next" value="{{ request.full_path }}">
+                </form>
+                {% endif %}
+                <form method="post" action="{{ url_for('delete_permission', perm_id=perm.id) }}">
+                  <button class="icon-btn danger" type="submit" title="Revoke">Revoke</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td><strong>{{ teacher.user.full_name }}</strong></td>
+            <td>{{ teacher.employee_id or '—' }}</td>
+            <td>{{ teacher.user.username }}</td>
+            <td>{{ teacher.user.email or '—' }}</td>
+            <td>{{ teacher.subject or '—' }}</td>
+            <td class="muted">—</td>
+            <td class="muted">—</td>
+            <td>{{ teacher.user.created_at.strftime('%d %b %Y') if teacher.user.created_at else '—' }}</td>
+            <td class="muted">None</td>
+            <td>
+              {% if teacher.can_reports %}
+                <span class="pill present">Yes</span>
+              {% else %}
+                <span class="muted">No</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if teacher.user.is_active %}
+                <span class="pill present">Active</span>
+              {% else %}
+                <span class="pill absent">Deactivated</span>
+              {% endif %}
+            </td>
+            <td class="actions">
+              {% call action_menu() %}
+                {{ action_link(url_for('set_user_password', user_id=teacher.user.id, next=request.full_path), 'Set password', icon_password()) }}
+                {% if teacher.can_reports %}
+                  {{ action_confirm('reports-teacher-' ~ teacher.user.id, 'Remove reports', 'Remove Reports tab access from ' ~ teacher.user.full_name ~ '?', icon_deactivate(), true) }}
+                {% else %}
+                  {{ action_confirm('reports-teacher-' ~ teacher.user.id, 'Allow reports', 'Give ' ~ teacher.user.full_name ~ ' the Reports tab?', icon_activate()) }}
+                {% endif %}
+                {% if can_deactivate_user(current_user, teacher.user) %}
+                  {% if teacher.user.is_active %}
+                    {{ action_confirm('access-teacher-' ~ teacher.user.id, 'Deactivate access', 'Deactivate ' ~ teacher.user.full_name ~ '? They will not be able to sign in.', icon_deactivate(), true) }}
+                  {% else %}
+                    {{ action_confirm('access-teacher-' ~ teacher.user.id, 'Restore access', 'Restore sign-in for ' ~ teacher.user.full_name ~ '?', icon_activate()) }}
+                  {% endif %}
+                {% endif %}
+              {% endcall %}
+              <form id="reports-teacher-{{ teacher.user.id }}" method="post" action="{{ url_for('teachers') }}" hidden>
+                <input type="hidden" name="action" value="toggle_reports">
+                <input type="hidden" name="teacher_id" value="{{ teacher.id }}">
+                <input type="hidden" name="next" value="{{ request.full_path }}">
+              </form>
+              {% if can_deactivate_user(current_user, teacher.user) %}
+              <form id="access-teacher-{{ teacher.user.id }}" method="post" action="{{ url_for('toggle_user_access', user_id=teacher.user.id) }}" hidden>
+                <input type="hidden" name="next" value="{{ request.full_path }}">
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endif %}
+      {% else %}
+      <tr><td colspan="12" class="muted">No teachers match this name or date filter.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
