@@ -1,25 +1,48 @@
 # Attendance Register
 
-A school attendance website built with **Python (Flask)**, **HTML**, and **CSS**.
+A school attendance website for classes, teachers, and students. Staff mark presence with a camera, attach classwork and homework from a work-copy scan, and students only see their own records.
 
-- Scan a student’s **face** to mark today’s attendance.
-- Scan their **work copy** (keep the face in frame) to update **classwork and homework** in that student’s account.
-- Students only **view** their own records.
-- Super admin has full write access, adds teachers to classes, and grants **read / write / update**.
+Copyright © Ankit Sharma.
 
-## MySQL Workbench
+## About this project
 
-The app uses the MySQL connection from Workbench:
+Attendance Register is a local Flask site backed by MySQL. Super admin owns the school, adds teachers to classes, and sets read / write / update rights. Teachers scan a student’s face to mark today’s attendance. They can also scan a work copy (with the face still in frame) to store classwork and homework on that student’s account. Students sign in only to view their own attendance and work.
 
-- Host: `127.0.0.1`
-- Port: `3306`
-- Username: `root`
-- Password: `root`
-- Schema: `attendance_register` (created automatically on first run)
+## Purpose
 
-In Workbench, open the **localhost** connection and refresh Schemas to see tables such as `users`, `classes`, `students`, `attendance`, `classwork`, and `homework`.
+- Keep daily attendance in one place instead of paper registers.
+- Tie classwork and homework to the correct student without typing names each time.
+- Give teachers limited access per class, and students a view-only account.
 
-## Run locally
+## How it works
+
+1. MySQL Server must be running. On first start the app creates the `attendance_register` schema and tables (`users`, `classes`, `students`, `attendance`, `classwork`, `homework`, and related tables).
+2. Super admin creates classes and student accounts, then captures **2 to 50** face photos per student (different poses and distances). Encodings are stored locally under `instance/encodings`.
+3. Teachers open **Face & copy scan**, keep **Live scan** on, and point the camera at one student. The matcher compares the live face to enrollment photos, fills class and section, and saves attendance.
+4. For work copies, the teacher keeps the student’s face in frame so the same match can attach scans to that account.
+5. Forgot-password uses SMTP settings saved on the super admin Profile page. Reset links work once, then everyone signs in again with the new password.
+
+Default MySQL (Workbench): host `127.0.0.1`, port `3306`, user `root`, password `root`, schema `attendance_register`.
+
+## Advantages
+
+- Face match reduces wrong-student attendance when lighting is good and one face is in frame.
+- Role-based access: students cannot edit records; teachers only get the rights the admin grants.
+- Excel import/export and PDF/Word-style reports for office use.
+- Runs on a school PC with a webcam; no cloud account is required for core attendance.
+
+## Technologies
+
+| Area | Choice |
+| --- | --- |
+| Language | Python |
+| Web | Flask, Flask-SQLAlchemy, Jinja HTML templates, CSS |
+| Database | MySQL via PyMySQL |
+| Vision | OpenCV, NumPy, Pillow |
+| Office files | openpyxl, reportlab, python-docx |
+| Mail | SMTP (for example Gmail on port 587 with an app password) |
+
+## How to run this project
 
 ```bash
 python -m venv .venv
@@ -28,18 +51,9 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open [http://127.0.0.1:5000](http://127.0.0.1:5000).
+Open [http://127.0.0.1:5000](http://127.0.0.1:5000). Start MySQL Server first.
 
-MySQL Server must be running before you start the site.
-
-## Forgot password
-
-1. Super admin signs in, opens **Profile**, and saves each person’s **registered email**.
-2. Super admin also saves **SMTP** settings on Profile (for Gmail: `smtp.gmail.com`, port `587`, app password).
-3. On the login page, click **Forgot password?**, enter username or email, and check that inbox.
-4. The link works **only once**. After the new password is saved, the site goes to **sign in** (not back to forgot password). Everyone must log in again.
-
-## Demo logins
+### Demo logins
 
 | Role | Username | Password | Notes |
 | --- | --- | --- | --- |
@@ -51,11 +65,10 @@ MySQL Server must be running before you start the site.
 
 Other students: `diya`, `kabir`, `vihaan` / `student123`.
 
-## First-time face setup
+### First-time face setup
 
 1. Sign in as **admin**.
-2. Open **Students**, create the account, then capture **2 to 50 different** face photos (left, right, closer, smile, straight-on).
+2. Open **Students**, create the account, then capture 2 to 50 different face photos.
 3. Teachers open **Face & copy scan**, point the camera, and keep **Live scan** on.
-4. The match fills in **class and section automatically** and saves attendance in that student’s account.
 
-The matcher compares the live face against every enrollment photo. It works best with one student in frame and good light.
+Copyright © Ankit Sharma.
